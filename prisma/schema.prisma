@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id         String     @id @default(cuid())
+  email      String     @unique
+  name       String
+  role       Role       @default(SELLER)
+  phone      String?
+  properties Property[] @relation("PropertyOwner")
+  createdAt  DateTime   @default(now())
+}
+
+enum Role {
+  BROKER
+  SELLER
+}
+
+model Property {
+  id               String            @id @default(cuid())
+  name             String
+  addressLine      String
+  submarket        String
+  transactionType  TransactionType
+  buildingSF       Int
+  lotSF            Int?
+  clearHeightFt    Float?
+  dockDoors        Int?
+  gradeLevelDoors  Int?
+  officeSF         Int?
+  yearBuilt        Int?
+  askingPrice      Float?
+  askingRateNNN    Float?
+  status           PropertyStatus
+  listedDate       DateTime
+  primaryContactId String
+  primaryContact   User              @relation("PropertyOwner", fields: [primaryContactId], references: [id])
+  heroImageUrl     String?
+  brokerNotes      String?
+  buyers           Buyer[]
+  offers           Offer[]
+  tenants          Tenant[]
+  lois             LOI[]
+  ddRoomActivity   DDRoomActivity[]
+  marketingMetrics MarketingMetric[]
+  weeklyUpdates    WeeklyUpdate[]
+  sourceSignals    SourceSignal[]
+  createdAt        DateTime          @default(now())
+}
+
+enum TransactionType {
+  SALE
+  LEASE
+}
+
+enum PropertyStatus {
+  COMING_SOON
+  ON_MARKET
+  OFFERS_IN
+  IN_ESCROW
+  CLOSED
+  LEASED
+}
+
+model Buyer {
+  id             String           @id @default(cuid())
+  propertyId     String
+  property       Property         @relation(fields: [propertyId], references: [id])
+  name           String
+  firm           String?
+  type           BuyerType
+  stage          BuyerStage
+  lastActivityAt DateTime
+  notes          String?
+  offers         Offer[]
+  ddActivity     DDRoomActivity[]
+}
+
+enum BuyerType {
+  OWNER_USER
+  PRIVATE_INVESTOR
+  SYNDICATOR
+  FAMILY_OFFICE
+  EXCHANGE_1031
+  INSTITUTIONAL
+}
+
+enum BuyerStage {
+  PROSPECT
+  TOURED
+  NDA_SIGNED
+  REVIEWING_DD
+  OFFER_SUBMITTED
+  PASSED
+}
+
+model Offer {
+  id                String      @id @default(cuid())
+  propertyId        String
+  property          Property    @relation(fields: [propertyId], references: [id])
+  buyerId           String
+  buyer             Buyer       @relation(fields: [buyerId], references: [id])
+  amount            Float
+  pricePerSF        Float
+  status            OfferStatus
+  termsSummary      String?
+  contingencies     String?
+  closeOfEscrowDays Int?
+  brokerResponse    String?
+  receivedAt        DateTime
+}
+
+enum OfferStatus {
+  SUBMITTED
+  COUNTERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model Tenant {
+  id             String        @id @default(cuid())
+  propertyId     String
+  property       Property      @relation(fields: [propertyId], references: [id])
+  name           String
+  company        String?
+  industry       String?
+  requirementSF  Int?
+  stage          TenantStage
+  lastActivityAt DateTime
+  notes          String?
+  lois           LOI[]
+}
+
+enum TenantStage {
+  PROSPECT
+  TOURED
+  NDA_SIGNED
+  REVIEWING_TERMS
+  LOI_SUBMITTED
+  PASSED
+}
+
+model LOI {
+  id               String    @id @default(cuid())
+  propertyId       String
+  property         Property  @relation(fields: [propertyId], references: [id])
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  proposedRateNNN  Float
+  leaseTerm        Int
+  commencementDate DateTime?
+  status           LOIStatus
+  termsSummary     String?
+  brokerResponse   String?
+  receivedAt       DateTime
+}
+
+enum LOIStatus {
+  SUBMITTED
+  COUNTERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model DDRoomActivity {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  buyerId    String?
+  buyer      Buyer?   @relation(fields: [buyerId], references: [id])
+  actorLabel String
+  action     String
+  occurredAt DateTime
+}
+
+model MarketingMetric {
+  id                String   @id @default(cuid())
+  propertyId        String
+  property          Property @relation(fields: [propertyId], references: [id])
+  date              DateTime
+  listingViews      Int      @default(0)
+  omDownloads       Int      @default(0)
+  emailBlastsSent   Int      @default(0)
+  brochureDownloads Int      @default(0)
+  tours             Int      @default(0)
+  daysOnMarket      Int      @default(0)
+}
+
+model WeeklyUpdate {
+  id          String       @id @default(cuid())
+  propertyId  String
+  property    Property     @relation(fields: [propertyId], references: [id])
+  weekOf      DateTime
+  status      UpdateStatus @default(DRAFT)
+  aiDraftBody String?
+  finalBody   String?
+  publishedAt DateTime?
+  createdAt   DateTime     @default(now())
+}
+
+enum UpdateStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model SourceSignal {
+  id         String     @id @default(cuid())
+  propertyId String
+  property   Property   @relation(fields: [propertyId], references: [id])
+  sourceType SourceType
+  rawSnippet String
+  capturedAt DateTime
+}
+
+enum SourceType {
+  GMAIL
+  GRANOLA
+  PIPEDRIVE
+  MANUAL
+}
+
+model Requirement {
+  id            String           @id @default(cuid())
+  contactName   String
+  company       String?
+  email         String?
+  phone         String?
+  minSF         Int?
+  maxSF         Int?
+  submarkets    String?
+  industry      String?
+  timeline      String?
+  budget        String?
+  type          RequirementType
+  stage         RequirementStage @default(ACTIVE)
+  notes         String?
+  source        String?
+  lastContactAt DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+enum RequirementType {
+  LEASE
+  PURCHASE
+  EITHER
+}
+
+enum RequirementStage {
+  ACTIVE
+  MATCHED
+  CLOSED
+  DEAD
+}
+
+model MagicLink {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
